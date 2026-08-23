@@ -261,7 +261,7 @@ private struct TrayTextDetailView: View {
                 copied = true
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 UIAccessibility.post(notification: .announcement, argument: "Copied")
-                try? await Task.sleep(for: .seconds(1.5))
+                try? await Task.sleep(for: FeedbackPresentation.copiedDismissalDelay)
                 copied = false
             } catch {
                 errorMessage = error.localizedDescription

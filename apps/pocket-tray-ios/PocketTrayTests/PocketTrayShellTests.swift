@@ -26,6 +26,12 @@ final class PocketTrayShellTests: XCTestCase {
         XCTAssertEqual(CaptureActionMode(clipboardPromptIsVisible: true), .saveClipboard)
     }
 
+    func testFeedbackStaysLongEnoughToUseAnAction() {
+        XCTAssertEqual(FeedbackPresentation.dismissalDelay(hasAction: false), .seconds(2))
+        XCTAssertEqual(FeedbackPresentation.dismissalDelay(hasAction: true), .seconds(5))
+        XCTAssertEqual(FeedbackPresentation.copiedDismissalDelay, .seconds(1.5))
+    }
+
     func testRecentObjectsGroupIntoTodayYesterdayAndEarlier() throws {
         let calendar = Calendar(identifier: .gregorian)
         let now = try XCTUnwrap(

@@ -10,6 +10,14 @@ enum CaptureActionMode: Equatable {
     }
 }
 
+enum FeedbackPresentation {
+    static let copiedDismissalDelay = Duration.seconds(1.5)
+
+    static func dismissalDelay(hasAction: Bool) -> Duration {
+        hasAction ? .seconds(5) : .seconds(2)
+    }
+}
+
 struct CaptureBarActions {
     let saveClipboard: () -> Void
     let newText: () -> Void
@@ -106,12 +114,24 @@ struct PocketTrayCaptureAccessory: View {
 }
 
 struct FeedbackToast: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     let message: String
     let actionTitle: String?
     let action: () -> Void
 
     var body: some View {
-        if #available(iOS 26.0, *) {
+        if reduceTransparency {
+            content
+                .background(
+                    Color(uiColor: .secondarySystemBackground),
+                    in: RoundedRectangle(cornerRadius: 18)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(.separator, lineWidth: 0.5)
+                }
+        } else if #available(iOS 26.0, *) {
             content
                 .glassEffect(
                     .regular.interactive(actionTitle != nil),

@@ -40,8 +40,19 @@ final class PocketTrayShellUITests: XCTestCase {
         primaryAction.tap()
 
         XCTAssertTrue(app.staticTexts["Saved to Pocket Tray"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Reuse your saved object"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["primary-capture-action"].waitForExistence(timeout: 3))
         XCTAssertEqual(app.buttons["primary-capture-action"].label, "Add")
+    }
+
+    func testEmptyTrayExplainsTheThreeCaptureRoutesWithoutSampleObjects() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your tray is ready"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Add directly"].exists)
+        XCTAssertTrue(app.staticTexts["Save your clipboard"].exists)
+        XCTAssertTrue(app.staticTexts["Share from another app"].exists)
+        XCTAssertTrue(app.buttons["primary-capture-action"].exists)
     }
 
     func testSavedObjectOpensContentFirstDetail() {

@@ -3,6 +3,18 @@ import Foundation
 import LocalAuthentication
 import SwiftUI
 
+enum AppPrivacyCoverPolicy {
+    static func shouldCover(isAppLockEnabled: Bool, scenePhase: ScenePhase) -> Bool {
+        isAppLockEnabled && scenePhase != .active
+    }
+}
+
+enum AppLockSettingChange {
+    static func requiresConfirmation(current: Bool, requested: Bool) -> Bool {
+        current && !requested
+    }
+}
+
 enum AppLockPreference {
     static let key = "appLock.isEnabled"
 
@@ -125,6 +137,14 @@ struct AppLockGate<Content: View>: View {
                 content()
             }
         }
+        .overlay {
+            if AppPrivacyCoverPolicy.shouldCover(
+                isAppLockEnabled: controller.isEnabled,
+                scenePhase: scenePhase
+            ) {
+                AppPrivacyCover()
+            }
+        }
         .task {
             if scenePhase == .active {
                 await controller.unlock()
@@ -137,6 +157,27 @@ struct AppLockGate<Content: View>: View {
                 controller.sceneDidEnterBackground()
             }
         }
+    }
+}
+
+private struct AppPrivacyCover: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "tray.full.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            Text("Pocket Tray")
+                .font(.title2.bold())
+            Text("Your saved objects are covered")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemBackground))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Pocket Tray is locked. Saved objects are covered.")
+        .accessibilityIdentifier("app-privacy-cover")
     }
 }
 
@@ -184,6 +225,7 @@ struct PocketTraySettingsView<TrashContent: View>: View {
     let trashCount: Int
     @ViewBuilder let trashContent: () -> TrashContent
     @State private var isChangingSetting = false
+    @State private var isConfirmingDisable = false
     @State private var storageReport: TrayStorageReport?
     @State private var storageError: String?
     @State private var supportedOCRLanguages: [String] = []
@@ -279,7 +321,16 @@ struct PocketTraySettingsView<TrashContent: View>: View {
                         "Require Face ID or Passcode",
                         isOn: Binding(
                             get: { controller.isEnabled },
-                            set: { isEnabled in updateAppLock(isEnabled) }
+                            set: { isEnabled in
+                                if AppLockSettingChange.requiresConfirmation(
+                                    current: controller.isEnabled,
+                                    requested: isEnabled
+                                ) {
+                                    isConfirmingDisable = true
+                                } else {
+                                    updateAppLock(isEnabled)
+                                }
+                            }
                         )
                     )
                     .disabled(isChangingSetting)
@@ -304,6 +355,18 @@ struct PocketTraySettingsView<TrashContent: View>: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .confirmationDialog(
+                "Turn Off App Lock?",
+                isPresented: $isConfirmingDisable,
+                titleVisibility: .visible
+            ) {
+                Button("Turn Off App Lock", role: .destructive) {
+                    updateAppLock(false)
+                }
+                Button("Keep App Lock On", role: .cancel) {}
+            } message: {
+                Text("Pocket Tray will no longer require Face ID or your passcode after you leave the app.")
             }
         }
     }

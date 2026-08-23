@@ -96,6 +96,7 @@ struct RootView: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(
         QuickCopyPreference.key,
         store: QuickCopyPreference.defaults
@@ -236,15 +237,17 @@ struct RootView: View {
                 }
                 .padding(.horizontal)
                 .safeAreaPadding(.top, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.snappy, value: feedback?.id)
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .snappy, value: feedback?.id)
         .onSubmit(of: .search, recordSearch)
         .task(id: feedback?.id) {
             guard let currentFeedback = feedback else { return }
             let feedbackID = currentFeedback.id
-            let duration: Duration = currentFeedback.action == nil ? .seconds(2) : .seconds(5)
+            let duration = FeedbackPresentation.dismissalDelay(
+                hasAction: currentFeedback.action != nil
+            )
             try? await Task.sleep(for: duration)
             guard !Task.isCancelled, feedback?.id == feedbackID else { return }
             feedback = nil
@@ -548,6 +551,11 @@ struct RootView: View {
                     emptyState(for: .recent)
                 }
             } else {
+                if recentFilter == .all && snapshot.recent.count == 1 {
+                    FirstSavedObjectHint()
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                }
                 itemList(items, groupsByCaptureDate: true)
             }
         }
@@ -572,11 +580,7 @@ struct RootView: View {
     private func emptyState(for section: PocketTraySection) -> some View {
         switch section {
         case .recent:
-            ContentUnavailableView {
-                Label("Your tray is empty", systemImage: "tray")
-            } description: {
-                Text("Tap Add to save text or a photo, or copy and share something from another app.")
-            }
+            EmptyTrayGuide()
         case .collections:
             EmptyView()
         case .search:

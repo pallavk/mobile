@@ -108,4 +108,21 @@ final class AppLockTests: XCTestCase {
         XCTAssertTrue(controller.isEnabled)
         XCTAssertTrue(controller.isLocked)
     }
+
+    func testPrivacyCoverAppearsWheneverEnabledAppLeavesForeground() {
+        XCTAssertFalse(AppPrivacyCoverPolicy.shouldCover(isAppLockEnabled: true, scenePhase: .active))
+        XCTAssertTrue(AppPrivacyCoverPolicy.shouldCover(isAppLockEnabled: true, scenePhase: .inactive))
+        XCTAssertTrue(AppPrivacyCoverPolicy.shouldCover(isAppLockEnabled: true, scenePhase: .background))
+    }
+
+    func testPrivacyCoverNeverAppearsWhenAppLockIsDisabled() {
+        XCTAssertFalse(AppPrivacyCoverPolicy.shouldCover(isAppLockEnabled: false, scenePhase: .inactive))
+        XCTAssertFalse(AppPrivacyCoverPolicy.shouldCover(isAppLockEnabled: false, scenePhase: .background))
+    }
+
+    func testDisablingAppLockRequiresConfirmationButEnablingDoesNot() {
+        XCTAssertTrue(AppLockSettingChange.requiresConfirmation(current: true, requested: false))
+        XCTAssertFalse(AppLockSettingChange.requiresConfirmation(current: false, requested: true))
+        XCTAssertFalse(AppLockSettingChange.requiresConfirmation(current: true, requested: true))
+    }
 }
